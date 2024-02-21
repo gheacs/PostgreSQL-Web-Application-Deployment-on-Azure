@@ -1,4 +1,4 @@
-# Flask PostgreSQL Web Application Deployment on Azure
+# PostgreSQL Web Application Deployment on Azure
 
 This guide will walk you through deploying a Flask application that connects to a PostgreSQL database to Azure.
 
@@ -41,6 +41,8 @@ This guide will walk you through deploying a Flask application that connects to 
 3. Even until now, I'm not sure whether the issue lies on the front-end or database part. But the website won't show any chart from the database.
 4. Oh, and dont use PostgreSQL password that ends with "@", it will save you from unnecessary trouble.
    ![image](https://github.com/gheacs/lab5/assets/132538718/24fc6237-a189-47bc-83f9-1f1b836b9824)
+   ![image](https://github.com/gheacs/lab5/assets/132538718/1e852e64-c62d-4600-b7eb-852516200553)
+
 
 
    
