@@ -32,8 +32,8 @@ This guide will walk you through deploying a Flask application that connects to 
    - In the Azure Portal, go to your web app's Configuration settings.
    - Add environment variables for your PostgreSQL connection.
 
-5. **Access Your Flask App:**
-   - Once deployment is complete, your Flask app will be accessible via the URL provided by Azure.
+5. **Access Your Streamlit App:**
+   - Once deployment is complete, your Streamlit app will be accessible via the URL provided by Azure.
 
 ## Reflection
 1. I learned a lot, especially on how to use dBeaver to connect with PostgreSQL in azure. My main challenge was because several row consists of long elements which resulted in upload issues.
