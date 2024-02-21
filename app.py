@@ -18,6 +18,10 @@ query_all_data = """
 """
 df_all_data = pd.read_sql_query(query_all_data, conn)
 
+#test
+st.subheader("Data from the database")
+st.write(df_all_data)
+
 # Feature: Data Visualization
 
 # Group events by category and count the occurrences
