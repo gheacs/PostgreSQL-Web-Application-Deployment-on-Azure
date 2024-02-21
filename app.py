@@ -1,69 +1,149 @@
-from flask import Flask, render_template
-from sqlalchemy import func
-from flask_sqlalchemy import SQLAlchemy
-from dotenv import load_dotenv
-import os
+import streamlit as st
+import pandas as pd
+import altair as alt
+from db import get_db_conn
+import datetime
+from dateutil.relativedelta import relativedelta
 
-# Load environment variables from .env file
-load_dotenv()
+# Title
+st.title("Seattle Events Dashboard")
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Connect to the database
+conn = get_db_conn()
 
-# Construct the database URI
-db_uri = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
+# Load data from the database
+query_all_data = """
+    SELECT *
+    FROM event
+"""
+df_all_data = pd.read_sql_query(query_all_data, conn)
 
-# Print the constructed PostgreSQL URI for debugging
-print("Constructed PostgreSQL URI:", app.config['SQLALCHEMY_DATABASE_URI'])
+# Feature: Data Visualization
 
-db = SQLAlchemy(app)
+# Group events by category and count the occurrences
+category_counts = df_all_data['event_type'].value_counts().reset_index()
+category_counts.columns = ['Category', 'EventCount']
 
-# Define your model
-class Event(db.Model):
-    __tablename__ = 'event'  # Explicitly set the table name to 'event'
-    id = db.Column(db.Integer, primary_key=True)
-    event_name = db.Column(db.String(255))
-    event_date = db.Column(db.Date)
-    event_location = db.Column(db.String(255))
-    event_type = db.Column(db.String(255))  # Adjusted column name to match the database
-    event_region = db.Column(db.String(255))
-    location_longitude = db.Column(db.Float)
-    location_latitude = db.Column(db.Float)
-    temperature = db.Column(db.Float)
-    min_temperature = db.Column(db.Float)
-    max_temperature = db.Column(db.Float)
-    humidity = db.Column(db.Integer)
-    description = db.Column(db.String(255))
-    weather_description_new = db.Column(db.String(255))  # Adjusted column name to match the database
+# Chart: Category of events
+st.subheader("What category of events are most common in Seattle?")
+chart = alt.Chart(category_counts).mark_bar().encode(
+    x=alt.X('EventCount:Q', title='Number of Events'),
+    y=alt.Y('Category:N', title='Event Category', sort='-x')
+).properties(width=600, height=400)
+st.altair_chart(chart)
 
-# Define your routes and views
-@app.route('/')
-def index():
-    return render_template('index.html')
+# Group events by month and count the occurrences
+df_all_data['month'] = pd.to_datetime(df_all_data['event_date']).dt.month
+month_counts = df_all_data['month'].value_counts().reset_index()
+df_all_data['month'] = pd.to_datetime(df_all_data['event_date']).dt.month_name()
+month_counts = df_all_data['month'].value_counts().reset_index()
+month_counts.columns = ['Month', 'EventCount']
 
-@app.route('/category')
-def category_chart():
-    # Query the database to get the count of each event category
-    category_counts = db.session.query(Event.event_type, func.count(Event.event_type)).group_by(Event.event_type).all()
-    # Pass the data to the template for rendering
-    return render_template('category_chart.html', category_counts=category_counts)
+# Chart: Month of events
+st.subheader("What month has the most number of events?")
+chart_month = alt.Chart(month_counts).mark_bar().encode(
+    x=alt.X('EventCount:Q', title='Number of Events'),
+    y=alt.Y('Month:N', title='Month', sort='-x')
+).properties(width=600, height=400)
+st.altair_chart(chart_month)
 
-@app.route('/month')
-def month_chart():
-    # Query the database to get the count of events for each month
-    month_counts = db.session.query(func.date_trunc('month', func.cast(Event.event_date, db.Date)), func.count('*')).group_by(func.date_trunc('month', func.cast(Event.event_date, db.Date))).all()
-    # Pass the data to the template for rendering
-    return render_template('month_chart.html', month_counts=month_counts)
+# Group events by day of the week and count the occurrences
+df_all_data['day_of_week'] = pd.to_datetime(df_all_data['event_date']).dt.day_name()
+day_counts = df_all_data['day_of_week'].value_counts().reset_index()
+day_counts.columns = ['DayOfWeek', 'EventCount']
 
-@app.route('/day')
-def day_chart():
-    # Query the database to get the count of events for each day of the week
-    day_counts = db.session.query(func.date_trunc('day', func.cast(Event.event_date, db.Date)), func.count('*')).group_by(func.date_trunc('day', func.cast(Event.event_date, db.Date))).all()
-    # Pass the data to the template for rendering
-    return render_template('day_chart.html', day_counts=day_counts)
+# Chart: Day of the week with most events
+st.subheader("What day of the week has the most number of events?")
+chart_day = alt.Chart(day_counts).mark_bar().encode(
+    x=alt.X('EventCount:Q', title='Number of Events'),
+    y=alt.Y('DayOfWeek:N', title='Day of the Week', sort='-x')
+).properties(width=600, height=400)
+st.altair_chart(chart_day)
 
-# Define additional routes and views for filtering data as needed
+# Group events by location and count the occurrences
+location_counts = df_all_data['event_location'].value_counts().reset_index()
+location_counts.columns = ['Location', 'EventCount']
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# Chart: Location of events
+st.subheader("Where are events often held?")
+chart_location = alt.Chart(location_counts).mark_bar().encode(
+    x=alt.X('EventCount:Q', title='Number of Events'),
+    y=alt.Y('Location:N', title='Event Location', sort='-x')
+).properties(width=600, height=400)
+st.altair_chart(chart_location)
+
+# Feature: Data Filtering and Sorting
+
+# Category filter
+include_all_categories = st.checkbox("Include All Categories")
+if include_all_categories:
+    selected_category = df_all_data['event_type'].unique()
+else:
+    selected_category = st.multiselect("Select categories", df_all_data['event_type'].unique())
+
+# Location filter
+include_all_locations = st.checkbox("Include All Locations")
+if include_all_locations:
+    selected_location = df_all_data['event_location'].unique()
+else:
+    selected_location = st.multiselect("Select locations", df_all_data['event_location'].unique())
+
+# Temperature filter
+include_all_temperatures = st.checkbox("Include All Temperatures")
+if include_all_temperatures:
+    selected_temperature_min = float(df_all_data['temperature'].min())
+    selected_temperature_max = float(df_all_data['temperature'].max())
+else:
+    temperature_range = st.slider("Select temperature range", float(df_all_data['temperature'].min()), float(df_all_data['temperature'].max()), (float(df_all_data['temperature'].min()), float(df_all_data['temperature'].max())))
+    selected_temperature_min, selected_temperature_max = temperature_range
+
+
+# Date range selector
+include_all_dates = st.checkbox("Include All Dates")
+if include_all_dates:
+    start_date = datetime.datetime.now().date()
+    end_date = datetime.datetime.now().date() + relativedelta(months=6)
+else:
+    start_date = st.date_input("Select start date")
+    end_date = st.date_input("Select end date")
+
+# Convert start_date and end_date to datetime objects
+start_date = datetime.datetime(start_date.year, start_date.month, start_date.day)
+end_date = datetime.datetime(end_date.year, end_date.month, end_date.day)
+
+# Convert 'event_date' column to datetime objects
+df_all_data['event_date'] = pd.to_datetime(df_all_data['event_date'])
+
+# Apply filters
+filtered_data = df_all_data[
+    (df_all_data['event_type'].isin(selected_category)) &
+    (df_all_data['event_date'].between(start_date, end_date)) &
+    (df_all_data['event_location'].isin(selected_location)) &
+    (df_all_data['temperature'].between(selected_temperature_min, selected_temperature_max))
+]
+
+# Clear filter button
+if st.button("Clear Filter"):
+    selected_category = None
+    selected_location = None
+    selected_temperature_min = float(df_all_data['temperature'].min())
+    selected_temperature_max = float(df_all_data['temperature'].max())
+    start_date = None
+    end_date = None
+    filtered_data = df_all_data
+
+# Sort data
+sort_by = st.selectbox("Sort by", ['event_date', 'event_type', 'event_location', 'temperature'])
+sort_order = st.selectbox("Sort order", ['ascending', 'descending'])
+
+if sort_order == 'ascending':
+    sorted_data = filtered_data.sort_values(by=sort_by)
+else:
+    sorted_data = filtered_data.sort_values(by=sort_by, ascending=False)
+
+# Display the filtered and sorted data in a table
+st.subheader("Filtered and Sorted Data")
+st.write(sorted_data)
+
+# Close the database connection
+conn.close()
