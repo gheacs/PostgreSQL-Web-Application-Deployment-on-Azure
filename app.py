@@ -22,6 +22,18 @@ df_all_data = pd.read_sql_query(query_all_data, conn)
 st.subheader("Data from the database")
 st.write(df_all_data)
 
+# Define a function to extract the end date from "Now through" entries
+def extract_end_date(date_str):
+    if 'Now through' in date_str:
+        # Extract the end date from the string
+        end_date_str = date_str.split('Now through')[1].strip()
+        return pd.to_datetime(end_date_str, errors='coerce')  # Convert to datetime object
+    else:
+        return pd.to_datetime(date_str, errors='coerce')  # Convert to datetime object
+
+# Preprocess the event_date column
+df_all_data['event_date'] = df_all_data['event_date'].apply(extract_end_date)
+
 # Feature: Data Visualization
 
 # Group events by category and count the occurrences
@@ -114,9 +126,6 @@ else:
 # Convert start_date and end_date to datetime objects
 start_date = datetime.datetime(start_date.year, start_date.month, start_date.day)
 end_date = datetime.datetime(end_date.year, end_date.month, end_date.day)
-
-# Convert 'event_date' column to datetime objects
-df_all_data['event_date'] = pd.to_datetime(df_all_data['event_date'])
 
 # Apply filters
 filtered_data = df_all_data[
