@@ -1,6 +1,6 @@
 # PostgreSQL Web Application Deployment on Azure
 
-This guide will walk you through deploying a Flask application that connects to a PostgreSQL database to Azure.
+This guide will walk you through deploying a Streamlit application that connects to a PostgreSQL database to Azure.
 
 ## Prerequisites
 
