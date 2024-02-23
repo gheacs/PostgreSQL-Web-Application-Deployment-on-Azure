@@ -10,8 +10,8 @@ This guide will walk you through deploying a Flask application that connects to 
 
 ## Steps to Deploy
 
-1. **Prepare Your Flask App:**
-   - Ensure your Flask application runs locally without errors.
+1. **Prepare Your Streamlit App:**
+   - Ensure your Streamlit application runs locally without errors.
    - Create a `requirements.txt` file listing all dependencies.
 
 2. **Create PostgreSQL Database on Azure:**
@@ -33,7 +33,7 @@ This guide will walk you through deploying a Flask application that connects to 
    - Add environment variables for your PostgreSQL connection.
 
 5. **Access Your Streamlit App:**
-   - Once deployment is complete, your Streamlit app will be accessible via the URL provided by Azure.
+   - Once deployment is complete, your Streamlit app will be accessible via the URL provided by Azure. (gheacs-techin510-lab5.azurewebsites.net)
 
 ## Reflection
 1. I learned a lot, especially on how to use dBeaver to connect with PostgreSQL in azure. My main challenge was because several row consists of long elements which resulted in upload issues.
