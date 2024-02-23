@@ -107,33 +107,60 @@ else:
 # Temperature filter
 include_all_temperatures = st.checkbox("Include All Temperatures")
 if include_all_temperatures:
-    selected_temperature_min = float(df_all_data['temperature'].min())
-    selected_temperature_max = float(df_all_data['temperature'].max())
+    valid_temperatures = df_all_data[df_all_data['temperature'] != 'Not found']
+    selected_temperature_min = float(valid_temperatures['temperature'].min())
+    selected_temperature_max = float(valid_temperatures['temperature'].max())
 else:
-    temperature_range = st.slider("Select temperature range", float(df_all_data['temperature'].min()), float(df_all_data['temperature'].max()), (float(df_all_data['temperature'].min()), float(df_all_data['temperature'].max())))
+    valid_temperatures = df_all_data[df_all_data['temperature'] != 'Not found']
+    temperature_range = st.slider("Select temperature range", float(valid_temperatures['temperature'].min()), float(valid_temperatures['temperature'].max()), (float(valid_temperatures['temperature'].min()), float(valid_temperatures['temperature'].max())))
     selected_temperature_min, selected_temperature_max = temperature_range
+
+# Convert temperatures to numeric values
+valid_temperatures['temperature'] = pd.to_numeric(valid_temperatures['temperature'], errors='coerce')
+
+# Apply filters
+filtered_data = valid_temperatures[
+    (valid_temperatures['event_type'].isin(selected_category)) &
+    (valid_temperatures['event_date'].between(start_date, end_date)) &
+    (valid_temperatures['event_location'].isin(selected_location)) &
+    (valid_temperatures['temperature'].between(selected_temperature_min, selected_temperature_max, inclusive=False))
+]
 
 
 # Date range selector
 include_all_dates = st.checkbox("Include All Dates")
+start_date = None
+end_date = None
+
 if include_all_dates:
     start_date = datetime.datetime.now().date()
-    end_date = datetime.datetime.now().date() + relativedelta(months=6)
+    end_date = start_date + relativedelta(months=6)
 else:
-    start_date = st.date_input("Select start date")
-    end_date = st.date_input("Select end date")
-
-# Convert start_date and end_date to datetime objects
-start_date = datetime.datetime(start_date.year, start_date.month, start_date.day)
-end_date = datetime.datetime(end_date.year, end_date.month, end_date.day)
+    start_date_input = st.date_input("Select start date")
+    end_date_input = st.date_input("Select end date")
+    
+    if start_date_input and end_date_input:  # Check if inputs are provided
+        start_date = datetime.datetime(start_date_input.year, start_date_input.month, start_date_input.day)
+        end_date = datetime.datetime(end_date_input.year, end_date_input.month, end_date_input.day)
 
 # Apply filters
-filtered_data = df_all_data[
-    (df_all_data['event_type'].isin(selected_category)) &
-    (df_all_data['event_date'].between(start_date, end_date)) &
-    (df_all_data['event_location'].isin(selected_location)) &
-    (df_all_data['temperature'].between(selected_temperature_min, selected_temperature_max))
-]
+if start_date is not None:
+    if end_date is None:
+        end_date = start_date + relativedelta(months=6)
+    
+    filtered_data = valid_temperatures[
+        (valid_temperatures['event_type'].isin(selected_category)) &
+        (valid_temperatures['event_date'].between(start_date, end_date)) &
+        (valid_temperatures['event_location'].isin(selected_location)) &
+        (valid_temperatures['temperature'].between(selected_temperature_min, selected_temperature_max, inclusive=False))
+    ]
+else:
+    st.warning("Please select valid start and end dates.")
+    filtered_data = valid_temperatures  # Default to unfiltered data
+
+
+
+
 
 # Clear filter button
 if st.button("Clear Filter"):
